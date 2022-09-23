@@ -1,5 +1,5 @@
-let vjsPlayer;
 let scripts;
+let vjsPlayer;
 
 function register({ registerHook, peertubeHelpers }) {
     init(registerHook, peertubeHelpers)
@@ -19,8 +19,8 @@ function init(registerHook, peertubeHelpers) {
                 .from(document.querySelectorAll('script'))
                 .map(scr => scr.src);
 
-            if (!scripts.includes('https://cdn.jsdelivr.net/npm/video.js@7.7.4/dist/video.min.js')) {
-                loadJS('https://cdn.jsdelivr.net/npm/video.js@7.7.4/dist/video.min.js', videojsLoaded, document.head);
+            if (!scripts.includes('https://cdn.jsdelivr.net/npm/video.js@7.10.2/dist/video.min.js')) {
+                loadJS('https://cdn.jsdelivr.net/npm/video.js@7.10.2/dist/video.min.js', videojsLoaded, document.head);
             } else {
                 console.log('videojs already loaded');
             }
@@ -28,8 +28,8 @@ function init(registerHook, peertubeHelpers) {
 
             registerHook({
                 target: 'action:video-watch.video.loaded',
-                handler: ({ video }) => {
-                    //  console.log('video hooked info :>> ', video);
+                handler: ({ videojs, video }) => {
+                    // console.log('video loaded hooked info :>> ', videojs, video);
                 }
             })
 
@@ -37,8 +37,8 @@ function init(registerHook, peertubeHelpers) {
                 target: "action:video-watch.player.loaded",
                 handler: ({ player, videojs, video }) => {
 
-                    //  console.log('peertube hooked info :>> ', player, videojs, video);
-                    console.log('video.tags :>> ', video.tags);
+                    // console.log('player loaded hooked info :>> ', player, videojs, video);
+                    console.log('video tags :>> ', video.tags);
 
                     const compliant360 = video.tags.find(element => {
                         if (element.includes('360:')) {
@@ -46,13 +46,32 @@ function init(registerHook, peertubeHelpers) {
                         }
                     });
 
-                    player.player_.pause();
-
                     if (compliant360 !== undefined) {
 
+                        vjsPlayer = videojs(document.querySelector('.video-js video'), {
+                            autoplay: false,
+                            posterImage: false,
+                            controls: false
+                        });
+
+                        vjsPlayer.ready(function() {
+                            var promise = vjsPlayer.play();
+                            if (promise !== undefined) {
+                                promise.then(function() {
+                                    // Autoplay started!
+                                    vjsPlayer.pause();
+                                    vjsPlayer.controls = false;
+                                }).catch(function(error) {
+                                    // Autoplay was prevented.
+                                    vjsPlayer.pause();
+                                    vjsPlayer.controls = false;
+                                });
+                            }
+                        });
+
                         peertubeHelpers.showModal({
-                            title: 'Interactive video',
-                            content: '<p>This seems to be a 360° video.</p><p>-Click and drag your mouse to interact with the video</p><p>OR</p><p>-Move your head if you have a VR headset.</p>',
+                            title: 'This seems to be a 360° video',
+                            content: '<p>-Click and drag your mouse to interact with the video</p><p>OR</p><p>-Move your head if you have a VR headset.</p>',
                             close: true,
                             //  cancel: { value: 'cancel', action: () => {} },
                             confirm: {
@@ -77,21 +96,23 @@ var loadJS = function(url, implementationCode, location) {
 };
 
 var videojsLoaded = function() {
-    console.log('videojs is loaded');
-    if (!scripts.includes('https://cdn.jsdelivr.net/npm/videojs-vr@1.7.2/dist/videojs-vr.min.js')) {
-        loadJS('https://cdn.jsdelivr.net/npm/videojs-vr@1.7.2/dist/videojs-vr.min.js', videojsvrLoaded, document.head);
+    console.log('videojs 7.10.2 is loaded');
+    if (!scripts.includes('https://cdn.jsdelivr.net/npm/videojs-xr@0.1.0/dist/videojs-xr.min.js')) {
+        loadJS('https://cdn.jsdelivr.net/npm/videojs-xr@0.1.0/dist/videojs-xr.min.js', videojsvrLoaded, document.head);
     } else {
-        console.log('videojsVR already loaded');
+        console.log('videojsXR already loaded');
     }
 }
 
 var videojsvrLoaded = function() {
-    console.log('videojs-vr is loaded');
+    console.log('videojs-xr 0.1.0 is loaded');
 }
 
 var goForVrPlayer = function(notifier, video) {
 
+    document.getElementById('videojs-wrapper').children[0].classList.remove('vjs-peertube-skin', 'vjs-has-starte');
     vjsPlayer = videojs(document.querySelector('.video-js video'));
+
     vjsPlayer.mediainfo = vjsPlayer.mediainfo || {};
 
     if (video.tags.includes('360:180')) {
@@ -100,8 +121,6 @@ var goForVrPlayer = function(notifier, video) {
         vjsPlayer.mediainfo.projection = '180_LR';
     } else if (video.tags.includes('360:180_MONO')) {
         vjsPlayer.mediainfo.projection = '180_MONO';
-    } else if (video.tags.includes('360:180_LR')) {
-        vjsPlayer.mediainfo.projection = '180_LR';
     } else if (video.tags.includes('360:360')) {
         vjsPlayer.mediainfo.projection = '360';
     } else if (video.tags.includes('360:Cube')) {
@@ -118,12 +137,12 @@ var goForVrPlayer = function(notifier, video) {
         vjsPlayer.mediainfo.projection = 'EAC_LR';
     }
 
-    vjsPlayer.vr({ projection: 'AUTO', sphereDetail: 32, debug: true, forceCardboard: false });
+    vjsPlayer.xr({ projection: 'AUTO', debug: true, forceCardboard: true });
 
-    console.log('mediainfo.projection :>> ', vjsPlayer.mediainfo.projection);
+    vjsPlayer.xr().on('initialized', () => {
+        vjsPlayer.xr().projection = vjsPlayer.mediainfo.projection;
+        console.log('switch to videojs-xr player with ' + vjsPlayer.mediainfo.projection + ' projection');
+        notifier.success('Switched to 360° video player');
+    });
 
-    vjsPlayer.play();
-
-    console.log('switch to videojs-vr Player');
-    notifier.success('Switched to 360° video player')
 }
