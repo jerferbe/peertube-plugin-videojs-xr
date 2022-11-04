@@ -52,6 +52,20 @@ function init(registerHook, peertubeHelpers) {
                 target: 'action:video-watch.video.loaded',
                 handler: ({ videojs, video }) => {
                     // console.log('video loaded hooked info :>> ', videojs, video);
+
+                    let isCompliant360;
+                    isCompliant360 = video.tags.find(element => {
+                        if (element.includes('360:')) {
+                            return true;
+                        }
+                    });
+
+                    if (isCompliant360 !== undefined) {
+                        setTimeout(() => {
+                            goForVrPlayer(notifier, video);
+                        }, 1000);
+                    }
+
                 }
             })
 
@@ -77,7 +91,9 @@ function init(registerHook, peertubeHelpers) {
                     console.log('video tags :>> ', video.tags);
 
 
-                    console.log('window.videojs :>> ', window.videojs);
+
+
+
 
 
                     // vjsPlayer.reset();
@@ -173,10 +189,6 @@ var videojsxrLoaded = function(notifier, video, videojs) {
 
 var webxrPolyfillLoaded = function() {
     console.log('webxr-polyfill is loaded');
-    var polyfill = new WebXRPolyfill({
-        cardboard: false,
-        allowCardboardOnDesktop: false,
-    });
 }
 
 var goForVrPlayer = function(notifier, video, videojs) {
@@ -198,12 +210,10 @@ var goForVrPlayer = function(notifier, video, videojs) {
         forceCardboard: false
     });
 
-
-
-    // var polyfill = new WebXRPolyfill({
-    //     cardboard: false,
-    //     allowCardboardOnDesktop: false,
-    // });
+    var polyfill = new WebXRPolyfill({
+        cardboard: true,
+        allowCardboardOnDesktop: true,
+    });
 
     vjsPlayer.mediainfo = vjsPlayer.mediainfo || {};
 
@@ -233,7 +243,7 @@ var goForVrPlayer = function(notifier, video, videojs) {
     }
 
     // vjsPlayer.xr({ projection: 'AUTO', debug: true, forceCardboard: true });
-    vjsPlayer.xr({ projection: 'AUTO', forceCardboard: false });
+    vjsPlayer.xr({ projection: 'AUTO' });
 
 
 

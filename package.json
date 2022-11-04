@@ -4,15 +4,13 @@
     "version": "0.1.0",
     "author": "jferrier",
     "bugs": "",
-    "clientScripts": [
-        {
-            "script": "client/common-client-plugin.js",
-            "scopes": [
-                "common",
-                "video-watch"
-            ]
-        }
-    ],
+    "clientScripts": [{
+        "script": "client/common-client-plugin.js",
+        "scopes": [
+            "common",
+            "video-watch"
+        ]
+    }],
     "css": [
         "client/style.css"
     ],
