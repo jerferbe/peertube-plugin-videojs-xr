@@ -1,5 +1,8 @@
 const path = require('path')
 const esbuild = require('esbuild')
+const { externalGlobalPlugin } = require("esbuild-plugin-external-global")
+
+
 
 const clientFiles = [
     'common-client-plugin.js',
@@ -12,6 +15,11 @@ const configs = clientFiles.map(f => ({
     minify: true,
     format: 'esm',
     target: 'safari11',
+    plugins: [
+        externalGlobalPlugin({
+            'video.js': 'window.videojs'
+        })
+    ],
     outfile: path.resolve(__dirname, '..', 'dist', f),
 }))
 

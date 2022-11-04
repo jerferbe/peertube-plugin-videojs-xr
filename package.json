@@ -1,16 +1,18 @@
 {
     "name": "peertube-plugin-videojs-xr",
     "description": "PeerTube plugin videojs-xr",
-    "version": "0.0.8",
+    "version": "0.1.0",
     "author": "jferrier",
     "bugs": "",
-    "clientScripts": [{
-        "script": "client/common-client-plugin.js",
-        "scopes": [
-            "common",
-            "video-watch"
-        ]
-    }],
+    "clientScripts": [
+        {
+            "script": "client/common-client-plugin.js",
+            "scopes": [
+                "common",
+                "video-watch"
+            ]
+        }
+    ],
     "css": [
         "client/style.css"
     ],
@@ -35,5 +37,9 @@
     },
     "devDependencies": {
         "esbuild": "^0.14.36"
+    },
+    "dependencies": {
+        "esbuild-plugin-external-global": "^1.0.1",
+        "videojs-xr": "^0.1.0"
     }
 }

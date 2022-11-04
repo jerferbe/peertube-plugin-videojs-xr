@@ -1,5 +1,6 @@
 let scripts;
 let vjsPlayer;
+// import { Xr } from '../node_modules/videojs-xr/dist/videojs-xr.es';
 
 
 function register({ registerHook, peertubeHelpers }) {
@@ -16,52 +17,41 @@ function init(registerHook, peertubeHelpers) {
         .then(s => {
             const { notifier } = peertubeHelpers;
 
+
             scripts = Array
                 .from(document.querySelectorAll('script'))
                 .map(scr => scr.src);
 
-            if (!scripts.includes('https://cdn.jsdelivr.net/npm/video.js@7.10.2/dist/video.min.js')) {
-                loadJS('https://cdn.jsdelivr.net/npm/video.js@7.10.2/dist/video.min.js', videojsLoaded, document.head);
-            } else {
-                console.log('videojs already loaded');
-            }
+            //         if (!scripts.includes('https://cdn.jsdelivr.net/npm/video.js@7.10.2/dist/video.min.js')) {
+            //             loadJS('https://cdn.jsdelivr.net/npm/video.js@7.10.2/dist/video.min.js', videojsLoaded, document.head);
+            //         } else {
+            //             console.log('videojs already loaded');
+            //         }
 
             console.log('scripts :>> ', scripts);
 
-            registerHook({
-                target: 'action:router:navigation-end',
-                handler: () => {
-                    // Fired when router navigation-end
-                    console.log('router navigation-end');
 
-                }
-            })
+
+
+            // registerHook({
+            //     target: 'action:router:navigation-end',
+            //     handler: () => {
+            //         console.log('router navigation-end');
+            //     }
+            // })
+
             registerHook({
                 target: 'action:embed.player.loaded',
                 handler: ({ videojs, video }) => {
                     // Fired when the embed loaded the player
                     console.log('loaded peertube embed player:>> ', video);
-
                 }
             })
+
             registerHook({
                 target: 'action:video-watch.video.loaded',
                 handler: ({ videojs, video }) => {
                     // console.log('video loaded hooked info :>> ', videojs, video);
-
-                    let isCompliant360;
-                    isCompliant360 = video.tags.find(element => {
-                        if (element.includes('360:')) {
-                            return true;
-                        }
-                    });
-
-                    if (isCompliant360 !== undefined) {
-                        setTimeout(() => {
-                            goForVrPlayer(notifier, video);
-                        }, 1000);
-                    }
-
                 }
             })
 
@@ -69,21 +59,25 @@ function init(registerHook, peertubeHelpers) {
                 target: "action:video-watch.player.loaded",
                 handler: ({ player, videojs, video }) => {
 
+
+                    window.videojs = videojs;
+
+                    if (!scripts.includes('https://cdn.jsdelivr.net/npm/videojs-xr@0.1.0/dist/videojs-xr.min.js')) {
+                        loadJS('https://cdn.jsdelivr.net/npm/videojs-xr@0.1.0/dist/videojs-xr.min.js', videojsxrLoaded(notifier, video, window.videojs), document.head);
+                    } else {
+                        console.log('videojsXR already loaded');
+                    }
+
+
+
+
+
+
                     // console.log('player loaded hooked info :>> ', player, videojs, video);
                     console.log('video tags :>> ', video.tags);
 
-                    // vjsPlayer = videojs(document.querySelector('.video-js video'), {
-                    //     autoplay: false,
-                    //     posterImage: true,
-                    //     controls: true,
-                    //     controlBar: {
-                    //         'pictureInPictureToggle': false
-                    //     },
-                    // });
 
-
-
-
+                    console.log('window.videojs :>> ', window.videojs);
 
 
                     // vjsPlayer.reset();
@@ -146,29 +140,48 @@ var loadJS = function(url, implementationCode, location) {
     location.appendChild(scriptTag);
 };
 
-var videojsLoaded = function() {
-    console.log('videojs 7.10.2 is loaded');
-    if (!scripts.includes('https://cdn.jsdelivr.net/npm/videojs-xr@0.1.0/dist/videojs-xr.min.js')) {
-        loadJS('https://cdn.jsdelivr.net/npm/videojs-xr@0.1.0/dist/videojs-xr.min.js', videojsvrLoaded, document.head);
-    } else {
-        console.log('videojsXR already loaded');
-    }
-}
+// var videojsLoaded = function() {
+//     console.log('videojs 7.10.2 is loaded');
+//     if (!scripts.includes('https://cdn.jsdelivr.net/npm/videojs-xr@0.1.0/dist/videojs-xr.min.js')) {
+//         loadJS('https://cdn.jsdelivr.net/npm/videojs-xr@0.1.0/dist/videojs-xr.min.js', videojsxrLoaded, document.head);
+//     } else {
+//         console.log('videojsXR already loaded');
+//     }
+// }
 
-var videojsvrLoaded = function() {
+var videojsxrLoaded = function(notifier, video, videojs) {
     console.log('videojs-xr 0.1.0 is loaded');
     if (!scripts.includes('https://cdn.jsdelivr.net/npm/webxr-polyfill@latest/build/webxr-polyfill.js')) {
         loadJS('https://cdn.jsdelivr.net/npm/webxr-polyfill@latest/build/webxr-polyfill.js', webxrPolyfillLoaded, document.head);
     } else {
         console.log('webxr-polyfill already loaded');
     }
+    // 
+    let isCompliant360;
+    isCompliant360 = video.tags.find(element => {
+        if (element.includes('360:')) {
+            return true;
+        }
+    });
+
+    if (isCompliant360 !== undefined) {
+        setTimeout(() => {
+            goForVrPlayer(notifier, video, videojs);
+        }, 1000);
+    }
 }
 
 var webxrPolyfillLoaded = function() {
     console.log('webxr-polyfill is loaded');
+    var polyfill = new WebXRPolyfill({
+        cardboard: false,
+        allowCardboardOnDesktop: false,
+    });
 }
 
-var goForVrPlayer = function(notifier, video) {
+var goForVrPlayer = function(notifier, video, videojs) {
+
+    console.log('goForVrPlayer :>> ');
 
     document.getElementById('videojs-wrapper').children[0].classList.remove('vjs-peertube-skin');
     // document.getElementById('videojs-wrapper').children[0].classList.add('vjs-default-skin');
@@ -178,21 +191,23 @@ var goForVrPlayer = function(notifier, video) {
     // const chil = videoParent.querySelectorAll(":scope > .vjs-control-bar");
 
 
-    vjsPlayer = videojs(document.querySelector('.video-js video'), {
+    vjsPlayer = window.videojs(document.querySelector('.video-js video'), {
         autoplay: false,
         posterImage: true,
         controls: true,
         forceCardboard: false
     });
 
-    var polyfill = new WebXRPolyfill({
-        cardboard: true,
-        allowCardboardOnDesktop: true,
-    });
+
+
+    // var polyfill = new WebXRPolyfill({
+    //     cardboard: false,
+    //     allowCardboardOnDesktop: false,
+    // });
 
     vjsPlayer.mediainfo = vjsPlayer.mediainfo || {};
 
-    console.log('vjsPlayer :>> ', vjsPlayer);
+
 
 
     if (video.tags.includes('360:180')) {
@@ -218,17 +233,16 @@ var goForVrPlayer = function(notifier, video) {
     }
 
     // vjsPlayer.xr({ projection: 'AUTO', debug: true, forceCardboard: true });
-    vjsPlayer.xr({ projection: 'AUTO' });
+    vjsPlayer.xr({ projection: 'AUTO', forceCardboard: false });
 
 
 
-    vjsPlayer.xr().on('initialized', () => {
-        vjsPlayer.xr().projection = vjsPlayer.mediainfo.projection;
-        // vjsPlayer.xr({projection: '360'});
-        console.log('"xr" in navigator :>> ', "xr" in navigator);
-        console.log('trying to switch projection type to : ' + vjsPlayer.mediainfo.projection);
-        notifier.success('Switched to 360° video player');
-
-    });
+    // vjsPlayer.xr().on('initialized', () => {
+    //     vjsPlayer.xr().projection = vjsPlayer.mediainfo.projection;
+    //     // vjsPlayer.xr({projection: '360'});
+    //     console.log('"xr" in navigator :>> ', "xr" in navigator);
+    //     console.log('trying to switch projection type to : ' + vjsPlayer.mediainfo.projection);
+    //     notifier.success('Switched to 360° video player');
+    // });
 
 }
