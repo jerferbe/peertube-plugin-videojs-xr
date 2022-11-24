@@ -1,6 +1,6 @@
 let scripts;
 let vjsPlayer;
-// import { Xr } from '../node_modules/videojs-xr/dist/videojs-xr.es';
+ 
 
 
 function register({ registerHook, peertubeHelpers }) {
@@ -18,21 +18,7 @@ function init(registerHook, peertubeHelpers) {
             const { notifier } = peertubeHelpers;
 
 
-            scripts = Array
-                .from(document.querySelectorAll('script'))
-                .map(scr => scr.src);
-
-            //         if (!scripts.includes('https://cdn.jsdelivr.net/npm/video.js@7.10.2/dist/video.min.js')) {
-            //             loadJS('https://cdn.jsdelivr.net/npm/video.js@7.10.2/dist/video.min.js', videojsLoaded, document.head);
-            //         } else {
-            //             console.log('videojs already loaded');
-            //         }
-
-            console.log('scripts :>> ', scripts);
-
-
-
-
+        
             // registerHook({
             //     target: 'action:router:navigation-end',
             //     handler: () => {
@@ -53,17 +39,21 @@ function init(registerHook, peertubeHelpers) {
                 handler: ({ videojs, video }) => {
                     // console.log('video loaded hooked info :>> ', videojs, video);
 
-                    let isCompliant360;
-                    isCompliant360 = video.tags.find(element => {
-                        if (element.includes('360:')) {
-                            return true;
-                        }
-                    });
+                    window.videojs = videojs;
 
-                    if (isCompliant360 !== undefined) {
-                        setTimeout(() => {
-                            goForVrPlayer(notifier, video);
-                        }, 1000);
+
+                    scripts = Array
+                    .from(document.querySelectorAll('script'))
+                    .map(scr => scr.src);
+
+                    console.log('scripts :>> ', scripts);
+
+
+                    if (!scripts.includes('https://cdn.jsdelivr.net/npm/videojs-xr@0.1.0/dist/videojs-xr.min.js')) {
+                        loadJS('https://cdn.jsdelivr.net/npm/videojs-xr@0.1.0/dist/videojs-xr.min.js', videojsxrLoaded(notifier, video, window.videojs), document.head);
+                    } else {
+                        console.log('videojsXR already loaded');
+                        videojsxrLoaded(notifier, video, window.videojs)
                     }
 
                 }
@@ -74,25 +64,11 @@ function init(registerHook, peertubeHelpers) {
                 handler: ({ player, videojs, video }) => {
 
 
-                    window.videojs = videojs;
-
-                    if (!scripts.includes('https://cdn.jsdelivr.net/npm/videojs-xr@0.1.0/dist/videojs-xr.min.js')) {
-                        loadJS('https://cdn.jsdelivr.net/npm/videojs-xr@0.1.0/dist/videojs-xr.min.js', videojsxrLoaded(notifier, video, window.videojs), document.head);
-                    } else {
-                        console.log('videojsXR already loaded');
-                    }
-
-
-
-
+                   
 
 
                     // console.log('player loaded hooked info :>> ', player, videojs, video);
                     console.log('video tags :>> ', video.tags);
-
-
-
-
 
 
 
@@ -167,11 +143,11 @@ var loadJS = function(url, implementationCode, location) {
 
 var videojsxrLoaded = function(notifier, video, videojs) {
     console.log('videojs-xr 0.1.0 is loaded');
-    if (!scripts.includes('https://cdn.jsdelivr.net/npm/webxr-polyfill@latest/build/webxr-polyfill.js')) {
-        loadJS('https://cdn.jsdelivr.net/npm/webxr-polyfill@latest/build/webxr-polyfill.js', webxrPolyfillLoaded, document.head);
-    } else {
-        console.log('webxr-polyfill already loaded');
-    }
+    // if (!scripts.includes('https://cdn.jsdelivr.net/npm/webxr-polyfill@latest/build/webxr-polyfill.js')) {
+    //     loadJS('https://cdn.jsdelivr.net/npm/webxr-polyfill@latest/build/webxr-polyfill.js', webxrPolyfillLoaded, document.head);
+    // } else {
+    //     console.log('webxr-polyfill already loaded');
+    // }
     // 
     let isCompliant360;
     isCompliant360 = video.tags.find(element => {
@@ -182,14 +158,16 @@ var videojsxrLoaded = function(notifier, video, videojs) {
 
     if (isCompliant360 !== undefined) {
         setTimeout(() => {
+     
             goForVrPlayer(notifier, video, videojs);
-        }, 1000);
+           
+        }, 100);
     }
 }
 
-var webxrPolyfillLoaded = function() {
-    console.log('webxr-polyfill is loaded');
-}
+// var webxrPolyfillLoaded = function() {
+//     console.log('webxr-polyfill is loaded');
+// }
 
 var goForVrPlayer = function(notifier, video, videojs) {
 
@@ -198,28 +176,31 @@ var goForVrPlayer = function(notifier, video, videojs) {
     document.getElementById('videojs-wrapper').children[0].classList.remove('vjs-peertube-skin');
     // document.getElementById('videojs-wrapper').children[0].classList.add('vjs-default-skin');
 
-
+ 
     // const videoParent = document.getElementById("vjs_video_3");
     // const chil = videoParent.querySelectorAll(":scope > .vjs-control-bar");
 
-
-    vjsPlayer = window.videojs(document.querySelector('.video-js video'), {
+    vjsPlayer = videojs(document.querySelector('video'), {
         autoplay: false,
         posterImage: true,
         controls: true,
         forceCardboard: false
     });
+    console.log('vjsPlayer :>> ', vjsPlayer);
 
-    var polyfill = new WebXRPolyfill({
-        cardboard: true,
-        allowCardboardOnDesktop: true,
-    });
+ 
+    setTimeout(() => {
+        vjsPlayer.xr({ projection: 'AUTO' });
+    }, 100);
+    
+   
+
+    // var polyfill = new WebXRPolyfill({
+    //     cardboard: true,
+    //     allowCardboardOnDesktop: true,
+    // });
 
     vjsPlayer.mediainfo = vjsPlayer.mediainfo || {};
-
-
-
-
     if (video.tags.includes('360:180')) {
         vjsPlayer.mediainfo.projection = '180';
     } else if (video.tags.includes('360:180_LR')) {
@@ -243,7 +224,7 @@ var goForVrPlayer = function(notifier, video, videojs) {
     }
 
     // vjsPlayer.xr({ projection: 'AUTO', debug: true, forceCardboard: true });
-    vjsPlayer.xr({ projection: 'AUTO' });
+    
 
 
 
